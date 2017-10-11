@@ -1,6 +1,6 @@
 ---
 title: "STAT/MATH 495: Problem Set 05"
-author: "WRITE YOUR NAME HERE"
+author: "Kiryu, Caleb, Abbas"
 date: "2017-10-11"
 output:
   html_document:
@@ -21,37 +21,137 @@ set.seed(76)
 
 # Load packages
 library(tidyverse)
+library(lattice)
+library(corrplot)
+library(plotly)
+library(mosaic)
 
 # Note the relative file path, and not absolute file path:
-train <- read_csv("data/train.csv")
 test <- read_csv("data/test.csv")
+train <- read_csv("data/train.csv")
 sample_submission <- read_csv("data/sampleSubmission.csv")
 ```
 
 
 # Collaboration
 
-Please indicate who you collaborated with on this assignment:
-
+No one outside the group
 
 # Exploratory Data Analysis
 
 Information on the competition can be found [here](https://www.kaggle.com/c/bike-sharing-demand).
 
+First, to get a general idea of the dataset, let's make a correlation plot to see the relationships between the variables. Additionally the correlation values of the 8 test variables in relation to the count variable.
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+x<-cor(train[2:12])
+corrplot(x, method="ellipse")
+cor(train[2:9], train$count)
+```
+It appears that none of the continuous variables have a strikingly clear relationship with the target variable. There appears to be useful explainitory information in some of the factor variables, but largely only in the upper range of the data (see box plots)
+
+Then, let's look at the spread of the response variable, 'count'.
 ```{r}
+ggplot(data = train, aes(x = count)) + geom_density(adjust = 0.77) + labs(title = "Spread ")
+fav_stats(train$count)
+```
+The density plot is fairly rightskewed, with most of the values being 
+
+We can see the relationship between our response variable and three predictors we selected, to see how bike rentals are impacted by Temperature, Humidity, and whether the day in question is a holiday.  
+```{r}
+train$holiday1<-0
+train$holiday1[which(train$holiday == 0)] <- 'Not Holiday'
+train$holiday1[which(train$holiday == 1)] <- 'Holiday'
+train$holiday <- as.factor(train$holiday)
+p <- plot_ly(train, x = ~temp, y = ~humidity, z = ~count, color= ~holiday1, colors = c('#BF382A', '#0C4B8E')) %>%
+  add_markers() %>%
+  layout(scene = list(xaxis = list(title = 'Humidity'),
+                     yaxis = list(title = 'Temperature (Celsius)'),
+                     zaxis = list(title = 'Count')))
+ggplotly(p)
 
 ```
 
 
 # Model Fit
 
-```{r}
+We are picking a model which uses Windspeed, temperature, and Humidity as the three predictors to predict Count with. 
+JUSTIFICATION:
 
+In the correlation plot above, these 3 variables had the strongest apparent relationship to "count". Windspeed was used instead of adjusted temperature to avoid obvious covariance between temp and atemp.
+
+The following represents the model being applied to the test set via predict():
+
+```{r}
+train <- read_csv("data/train.csv")
+model1<- lm(log(count)~ windspeed+temp+humidity, data=train)
+summary(model1)
+mplot(model1)[1:2]
+
+
+Test_predict <- predict(model1, newdata = test)
+
+Test_predict_table <- data_frame(Test_predict) %>% 
+  mutate(count = exp(Test_predict)) %>% 
+  mutate(datetime = sample_submission$datetime) %>%
+  select(datetime, count)
+  
+
+
+```
+
+All of the predictors in this model are significant. That said, most variants of this model (including when we log and/or take the square roots) violate the equal variance and normality of error conditions.
+
+
+
+The following code is intended to be used in re-submission for cross validation
+```{r}
+set.seed(3400)
+nfold <- 5
+nrow(train)/nfold
+
+k <- 5
+Fold_train <- train %>% 
+  sample_frac(1) %>% 
+  mutate(fold = rep(1:k, len=nrow(train)))
+
+"indices <- sample(nrow(train), nrow(train), replace=FALSE)
+splits<-split(indices, ceiling(seq_along(indices)/2177))
+splits<-as.data.frame(splits)
+d1a <- train[splits$X1,]
+d1b <- train[splits$X2,]
+d1c <- train[splits$X3,]
+d1d <- train[splits$X4,]
+d1e <- train[splits$X5,]
+folds <- list[d1a,d1b,d1c,d1d,d1e]
+rmse1<-0
+rmse2<-0
+rmse3<-0
+rmse4<-0
+rmse5<-0
+rmses <- c(rmse1,rmse2,rmse3,rmse4,rmse5)"
+
+"for (i in 1:5){
+  rmses[i-1] <- lm(count~temp~workingday+weather, data = subset(Fold_train, fold = i)) %>% 
+    predict(subset(Fold_train, fold != i)) %>% 
+    `-` (subset(Fold_train, fold != i)$count) %>% 
+    `^`(2) %>% 
+    sum %>% 
+   `/` (subset(Fold_train, fold != i)$count) %>% 
+    sqrt
+}"
 ```
 
 
 # Create Submission File
 
 ```{r}
+write.csv(Test_predict_table, "submission.csv", row.names = F)
 
 ```
+
+
+#FINAL CHECK
+
+. every plot has all labels (including units)
+. code chunks are hidden in the output
+. our names + date etc are all up there
