@@ -54,7 +54,19 @@ Then, let's look at the spread of the response variable, 'count'.
 ggplot(data = train, aes(x = count)) + geom_density(adjust = 0.77) + labs(title = "Spread ")
 fav_stats(train$count)
 ```
-The density plot is fairly rightskewed, with most of the values being 
+
+Additionally we can use stepwise regression below to see which predictors are best using only 3 steps. Note VOI stands for "variables of interest" referring to predictors used.  
+
+```{r}
+train_VOI <- train %>% 
+  select(-casual) %>% 
+  select(-registered, -datetime)
+
+null <- lm(count ~ 1, data = train_VOI)
+full <- lm(count ~ ., data = train_VOI)
+step(null, scope = list(lower = null, upper = full), direction = "both", steps = 3)
+```
+The results suggest that temperature, humidity and season are the most influential predictors. This doesn't guarantee that this is the ideal model however so it is still possible to look at other predictors. 
 
 We can see the relationship between our response variable and three predictors we selected, to see how bike rentals are impacted by Temperature, Humidity, and whether the day in question is a holiday.  
 ```{r}
