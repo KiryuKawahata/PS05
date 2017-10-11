@@ -86,10 +86,7 @@ ggplotly(p)
 
 # Model Fit
 
-We are picking a model which uses Windspeed, temperature, and Humidity as the three predictors to predict Count with. 
-JUSTIFICATION:
-
-In the correlation plot above, these 3 variables had the strongest apparent relationship to "count". Windspeed was used instead of adjusted temperature to avoid obvious covariance between temp and atemp.
+We are picking a model which uses Windspeed, temperature, and Humidity as the three predictors to predict Count with. In the correlation plot above, these 3 variables had the strongest apparent relationship to "count". Windspeed was used instead of adjusted temperature to avoid obvious covariance between temp and atemp.
 
 The following represents the model being applied to the test set via predict():
 
@@ -162,8 +159,3 @@ write.csv(Test_predict_table, "submission.csv", row.names = F)
 ```
 
 
-#FINAL CHECK
-
-. every plot has all labels (including units)
-. code chunks are hidden in the output
-. our names + date etc are all up there

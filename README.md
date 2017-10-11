@@ -2,4 +2,4 @@
 
 See [description](https://rudeboybert.github.io/STAT495/#problem_set_5) on course webpage.
 
-Click [here](http://htmlpreview.github.io/?https://github.com/KiryuKawahata/PS05/blob/master/PS05.html) to view your forked version of `PS05.html`.
+Click [here](http://rpubs.com/kk15/317296) to view your forked version of `PS05.html`.
