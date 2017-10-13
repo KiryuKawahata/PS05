@@ -25,6 +25,7 @@ library(lattice)
 library(corrplot)
 library(plotly)
 library(mosaic)
+library(knitr)
 
 # Note the relative file path, and not absolute file path:
 test <- read_csv("data/test.csv")
@@ -45,15 +46,17 @@ First, to get a general idea of the dataset, let's make a correlation plot to se
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 x<-cor(train[2:12])
 corrplot(x, method="ellipse")
-cor(train[2:9], train$count)
+kable(cor(train[2:9], train$count), title="Correlation with Count", sf=4)
 ```
-It appears that none of the continuous variables have a strikingly clear relationship with the target variable. There appears to be useful explainitory information in some of the factor variables, but largely only in the upper range of the data (see box plots)
+It appears that none of the continuous variables have a strikingly clear linear relationship with the target variable. There appears to be useful explanatory information in some of the factor variables, but largely only in the upper range of the data (see box plots)
 
 Then, let's look at the spread of the response variable, 'count'.
-```{r}
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
 ggplot(data = train, aes(x = count)) + geom_density(adjust = 0.77) + labs(title = "Spread ")
 fav_stats(train$count)
 ```
+The distribution looks pretty right-skewed. We can see that count is the median value is relatively low, with the mean being higher due to some prominent outliers.
 
 Additionally we can use stepwise regression below to see which predictors are best using only 3 steps. Note VOI stands for "variables of interest" referring to predictors used.  
 
@@ -86,7 +89,7 @@ ggplotly(p)
 
 # Model Fit
 
-We are picking a model which uses Windspeed, temperature, and Humidity as the three predictors to predict Count with. In the correlation plot above, these 3 variables had the strongest apparent relationship to "count". Windspeed was used instead of adjusted temperature to avoid obvious covariance between temp and atemp.
+We are picking a model which uses Windspeed, temperature, and Humidity as the three predictors to predict Count with. In the correlation plot above, these 3 variables had the strongest apparent relationship to "count". Windspeed was used instead of adjusted temperature to avoid obvious correlation between temp and atemp.
 
 The following represents the model being applied to the test set via predict():
 
@@ -108,22 +111,23 @@ Test_predict_table <- data_frame(Test_predict) %>%
 
 ```
 
-All of the predictors in this model are significant. That said, most variants of this model (including when we log and/or take the square roots) violate the equal variance and normality of error conditions.
+All of the predictors in this model are significant. That said, most variants of this model (including when we log and/or take the square roots) violate the equal variance and normality of error conditions, which may be cause for concern. We can use objective measures (cross validation/kaggle) do determine whether this is a detriment to the model's predictive ability.
 
 
 
 The following code is intended to be used in re-submission for cross validation
 ```{r}
-set.seed(3400)
+set.seed(801)
 nfold <- 5
 nrow(train)/nfold
 
-k <- 5
+#splitting up training data for 5-fold crossvalidation
+k <- 5 
 Fold_train <- train %>% 
   sample_frac(1) %>% 
   mutate(fold = rep(1:k, len=nrow(train)))
 
-"indices <- sample(nrow(train), nrow(train), replace=FALSE)
+indices <- sample(nrow(train), nrow(train), replace=FALSE)
 splits<-split(indices, ceiling(seq_along(indices)/2177))
 splits<-as.data.frame(splits)
 d1a <- train[splits$X1,]
@@ -131,23 +135,25 @@ d1b <- train[splits$X2,]
 d1c <- train[splits$X3,]
 d1d <- train[splits$X4,]
 d1e <- train[splits$X5,]
-folds <- list[d1a,d1b,d1c,d1d,d1e]
+folds <- list(d1a,d1b,d1c,d1d,d1e)
 rmse1<-0
 rmse2<-0
 rmse3<-0
 rmse4<-0
 rmse5<-0
-rmses <- c(rmse1,rmse2,rmse3,rmse4,rmse5)"
+rmses <- c(rmse1,rmse2,rmse3,rmse4,rmse5)
 
-"for (i in 1:5){
-  rmses[i-1] <- lm(count~temp~workingday+weather, data = subset(Fold_train, fold = i)) %>% 
+for (i in 1:5){
+  rmses[i] <- lm(count~temp+workingday+weather, data = subset(Fold_train, fold = i)) %>% 
     predict(subset(Fold_train, fold != i)) %>% 
     `-` (subset(Fold_train, fold != i)$count) %>% 
     `^`(2) %>% 
     sum %>% 
-   `/` (subset(Fold_train, fold != i)$count) %>% 
-    sqrt
-}"
+    `/` (nrow(subset(Fold_train, fold != i))) %>% 
+    sqrt 
+}
+
+print(rmses)
 ```
 
 
